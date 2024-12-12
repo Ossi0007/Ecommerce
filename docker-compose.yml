@@ -1,0 +1,36 @@
+services:
+  gateway:
+    build: ./gateway
+    ports:
+      - "8761:8761"
+    depends_on:
+      - inventory
+      - order
+      - payment
+    networks:
+      - app-network
+
+  inventory:
+    build: ./inventory
+    ports:
+      - "8085:8085"  # Expose port 8085 for the inventory service
+    networks:
+      - app-network
+
+  order:
+    build: ./order
+    ports:
+      - "8086:8086"
+    networks:
+      - app-network
+
+  payment:
+    build: ./payment
+    ports:
+      - "8087:8087"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
