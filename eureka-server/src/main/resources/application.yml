@@ -1,0 +1,16 @@
+server:
+  port: 8761
+
+spring:
+  application:
+    name: eureka-server
+
+eureka:
+  client:
+    register-with-eureka: false  # This service is the Eureka Server
+    fetch-registry: false        # No need to fetch registry since it's the server
+  server:
+    enable-self-preservation: true
+    eviction-interval-timer-in-ms: 60000
+    wait-time-in-ms-when-sync-empty: 0
+    enableSelfPreservation: false

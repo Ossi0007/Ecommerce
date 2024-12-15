@@ -1,19 +1,40 @@
 services:
+  eureka-server:
+    image: openjdk:21
+    container_name: eureka-server
+    build:
+      context: ./eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - EUREKA_SERVER_PORT=8761
+    networks:
+      - app-network
+
   gateway:
     build: ./gateway
     ports:
-      - "8761:8761"
+      - "9000:9000"
     depends_on:
       - inventory
       - order
       - payment
+      - eureka-server
+    environment:
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - SPRING_PROFILES_ACTIVE=docker
     networks:
       - app-network
 
   inventory:
     build: ./inventory
     ports:
-      - "8085:8085"  # Expose port 8085 for the inventory service
+      - "8085:8085"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - SPRING_PROFILES_ACTIVE=docker
     networks:
       - app-network
 
@@ -21,6 +42,11 @@ services:
     build: ./order
     ports:
       - "8086:8086"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - SPRING_PROFILES_ACTIVE=docker
     networks:
       - app-network
 
@@ -28,9 +54,65 @@ services:
     build: ./payment
     ports:
       - "8087:8087"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - SPRING_PROFILES_ACTIVE=docker
     networks:
       - app-network
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    networks:
+      - elk-network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.10.2
+    container_name: logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    depends_on:
+      - elasticsearch
+    command: [ "sh", "-c", "until nc -z elasticsearch 9200; do echo 'Waiting for Elasticsearch...'; sleep 2; done; /usr/share/logstash/bin/logstash -f /usr/share/logstash/pipeline/logstash.conf" ]
+    networks:
+      - elk-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - elk-network
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.10.2
+    container_name: filebeat
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro  # Mount your filebeat.yml file
+      - /var/log:/var/log  # Mount the log directory (adjust if needed)
+    networks:
+      - elk-network
+    depends_on:
+      - logstash
+
+
 networks:
   app-network:
+    driver: bridge
+  elk-network:
     driver: bridge

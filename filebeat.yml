@@ -1,0 +1,12 @@
+# Filebeat Configuration
+
+# Configure input paths for logs you want to ship
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/*.log   # Adjust to the location of your log files
+
+# Log output to Logstash
+output.logstash:
+  hosts: ["logstash:5044"]  # Send logs to Logstash container on port 5044

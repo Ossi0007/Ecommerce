@@ -1,35 +1,47 @@
 server:
-  port: 8888  # Gateway and Eureka Server will run on this port
+  port: 9000  # Gateway and Eureka Server will run on this port
 
 
 
 spring:
   application:
-    name: gateway-service
+    name: GATEWAY-SERVICE
   cloud:
+    netty:
+      prefer-native: false
     gateway:
       routes:
         - id: inventory-service
-          uri: lb://INVENTORY-SERVICE
+          uri: http://localhost:8085
           predicates:
             - Path=/inventory/**
         - id: order-service
-          uri: lb://ORDER-SERVICE
+          uri: http://localhost:8086
           predicates:
             - Path=/order/**
         - id: payment-service
-          uri: lb://PAYMENT-SERVICE
+          uri: http://localhost:8087
           predicates:
             - Path=/payment/**
-    discovery:
-      locator:
-        enabled: true  # Enables dynamic service discovery for routes
-        lower-case-service-id: true
 
-eureka:
-  client:
-    register-with-eureka: false  # This service is the Eureka Server
-    fetch-registry: false        # No need to fetch registry since it's the server
-  server:
-    enable-self-preservation: true
-    eviction-interval-timer-in-ms: 60000
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+  eureka:
+    client:
+      serviceUrl:
+        defaultZone: http://localhost:8761/eureka/
+      fetch-registry: true
+      register-with-eureka: true
+
+logging:
+  level:
+    root: INFO
+#    org.springframework.cloud.gateway: DEBUG    # Gateway core logs
+#    org.springframework.cloud.loadbalancer: DEBUG  # LoadBalancer logs
+#    com.netflix.eureka: DEBUG  # Eureka logs
+#    reactor.netty: DEBUG  # Netty logs for troubleshooting network issues
+
+
